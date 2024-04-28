@@ -7,7 +7,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
-
+#include <vector>
 class Tutorial_Triangle {
     
     public:
@@ -15,6 +15,18 @@ class Tutorial_Triangle {
     // Functions
     void run();
 
+    // Members
+    const uint32_t WIDTH = 800;
+    const uint32_t HEIGHT = 600;
+
+    const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+
+    // Just here for debugging info
+    #ifdef NDEBUG
+        const bool enableValidationLayers = false;
+    #else
+        const bool enableValidationLayers = true;
+    #endif
     private:
 
     // Functions

@@ -3,9 +3,22 @@
 
 #include "../include/Tutorial_Triangle.h"
 
-#include <vector>
+#include <cstring>
+
 namespace HelperFunctions
 {
+
+    // Only here for debugging info
+    #ifdef NDEBUG
+        const bool enableValidationLayers = false;
+    #else
+        const bool enableValidationLayers = true;
+    #endif
+    
+    // Just for this scope's purposes
+    const std::vector<const char*> sValidationLayers = { "VK_LAYER_KHRONOS_validation" };
+    
+    // Helper function that lists all the supported instance extensions 
     void listSupportedInstanceExt() {
 
         uint32_t extensionCount = 0;
@@ -20,6 +33,31 @@ namespace HelperFunctions
         }
 
     } // end of listSupportedInstanceExt()
+
+    bool checkValidationLayerSupport() {
+        uint32_t layerCount;
+        vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+        std::vector<VkLayerProperties> availableLayers(layerCount);
+        vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+        for (const char* layerName : sValidationLayers) {
+            bool layerFound = false;
+
+            for (const auto& layerProperties : availableLayers) {
+                layerFound = (strcmp(layerName, layerProperties.layerName) == 0) ? true : false;
+                break;
+            }
+
+            if (!layerFound && enableValidationLayers) {
+                
+                throw std::runtime_error("Validation layers requested, but not available!");
+            }
+        }
+
+        return true;
+
+    } // end of checkValidationLayersSupport()
 
 } // end of HelperFunctions namespace
 
@@ -76,7 +114,8 @@ void Tutorial_Triangle::createInstance() {
     createInfo.pApplicationInfo = &appInfo;
     createInfo.enabledExtensionCount = glfwExtensionCount;
     createInfo.ppEnabledExtensionNames = glfwExtensions;
-    createInfo.enabledLayerCount = 0;
+    createInfo.enabledLayerCount = enableValidationLayers ? static_cast<uint32_t>(validationLayers.size()) : 0;
+    createInfo.ppEnabledLayerNames = enableValidationLayers ? validationLayers.data() : nullptr;
 
     // Create instance
     if(vkCreateInstance(&createInfo, nullptr, &instance_) != VK_SUCCESS) {
