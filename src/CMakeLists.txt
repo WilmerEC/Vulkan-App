@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi")
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
 
 add_executable(VulkanApp ${SOURCE})
 

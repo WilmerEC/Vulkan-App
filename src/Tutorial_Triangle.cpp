@@ -1,7 +1,27 @@
 #ifndef TUTORIAL_TRIANGLE_CPP
 #define TUTORIAL_TRIANGLE_CPP
 
-#include "Tutorial_Triangle.h"
+#include "../include/Tutorial_Triangle.h"
+
+#include <vector>
+namespace HelperFunctions
+{
+    void listSupportedInstanceExt() {
+
+        uint32_t extensionCount = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+        std::vector<VkExtensionProperties> extensions(extensionCount);
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+
+        std::cout << "\nAvailable extensions for Vulkan Instance: \n";
+
+        for (const auto& extension : extensions) { 
+            std::cout << "\t" << extension.extensionName << "\n";
+        }
+
+    } // end of listSupportedInstanceExt()
+
+} // end of HelperFunctions namespace
 
 void Tutorial_Triangle::run() {
 
@@ -30,8 +50,42 @@ void Tutorial_Triangle::initWindow() {
 } // end of initWindow()
 
 void Tutorial_Triangle::initVulkan() {
-
+    createInstance();
 } // end of initVulkan()
+
+// Creating the Vulkan Instance
+void Tutorial_Triangle::createInstance() {
+    
+    // Get GLFW info for instance struct creation
+    uint32_t glfwExtensionCount = 0;
+    const char** glfwExtensions;
+
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+    // Filling necessary structs to create vulkan instance
+    VkApplicationInfo appInfo{};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName = "Vulkan Application";
+    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.pEngineName = "No Engine";
+    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_0;
+
+    VkInstanceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.pApplicationInfo = &appInfo;
+    createInfo.enabledExtensionCount = glfwExtensionCount;
+    createInfo.ppEnabledExtensionNames = glfwExtensions;
+    createInfo.enabledLayerCount = 0;
+
+    // Create instance
+    if(vkCreateInstance(&createInfo, nullptr, &instance_) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create instance!");
+    }
+
+    HelperFunctions::listSupportedInstanceExt();
+
+} // end of createInstance()
 
 void Tutorial_Triangle::mainLoop() {
     
@@ -44,6 +98,7 @@ void Tutorial_Triangle::mainLoop() {
 
 void Tutorial_Triangle::cleanUp() {
 
+    vkDestroyInstance(instance_, nullptr);
     glfwDestroyWindow(pWindow);
     glfwTerminate();
 
