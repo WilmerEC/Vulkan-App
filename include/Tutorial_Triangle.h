@@ -33,12 +33,14 @@ class Tutorial_Triangle {
     void initWindow();
     void initVulkan();
     void createInstance();
+    void pickPhysicalDevice();
     void mainLoop();
     void cleanUp();
 
-    // Members                      // [ 3 Tabs ]
-    GLFWwindow* pWindow;            // GLFW window object reference
-    VkInstance instance_;           // Vulkan instance object
+    // Members                                                  // [ 10 Tabs ]
+    GLFWwindow* pWindow;                                        // GLFW window object reference
+    VkInstance instance_;                                       // Holds Vulkan instance
+    VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;          // Holds the selected GPU 
 };
 
 #endif // TUTORIAL_TRIANGLE_H

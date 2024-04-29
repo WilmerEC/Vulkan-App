@@ -4,9 +4,19 @@
 #include "../include/Tutorial_Triangle.h"
 
 #include <cstring>
+#include <optional>
 
 namespace HelperFunctions
 {
+
+    // Helper function to obtain correct Queue Families 
+    struct QueueFamilyIndices {
+        std::optional<uint32_t> graphicsFamily;
+
+        bool isComplete() {
+            return graphicsFamily.has_value();
+        }
+    };
 
     // Only here for debugging info
     #ifdef NDEBUG
@@ -14,7 +24,8 @@ namespace HelperFunctions
     #else
         const bool enableValidationLayers = true;
     #endif
-    
+
+
     // Just for this scope's purposes
     const std::vector<const char*> sValidationLayers = { "VK_LAYER_KHRONOS_validation" };
     
@@ -31,7 +42,6 @@ namespace HelperFunctions
         for (const auto& extension : extensions) { 
             std::cout << "\t" << extension.extensionName << "\n";
         }
-
     } // end of listSupportedInstanceExt()
 
     bool checkValidationLayerSupport() {
@@ -59,6 +69,56 @@ namespace HelperFunctions
 
     } // end of checkValidationLayersSupport()
 
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+        QueueFamilyIndices indices;
+
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+        int i = 0;
+        for (const auto& queueFamily : queueFamilies) {
+            indices.graphicsFamily = (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) ? i : 0;
+            i++;
+        }
+        
+        return indices;
+
+    } // end of findQueueFamilies()
+
+    int rateDeviceSuitability(VkPhysicalDevice device) {
+        
+        // Check for GPU properties and features
+        VkPhysicalDeviceProperties deviceProperties;
+        VkPhysicalDeviceFeatures deviceFeatures;
+
+        QueueFamilyIndices indices = findQueueFamilies(device);
+
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+        int score = (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) ? (score + 1000) : 
+                    ((deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) ? 10000 : 0);
+
+        std::cout << "\nVK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: " << VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU <<
+                     "\nVK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: " << VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU << 
+                     "\ndeviceProperties.deviceType: " << deviceProperties.deviceType <<
+                     "\ndeviceProperties.limits.maxImageDimension2D: " << deviceProperties.limits.maxImageDimension2D << std::endl;
+
+        if ((score >= 1000) && (score < 1500)) {
+            std::cout << "\nGPU Type: DISCRETE (score: " << score << ")" << "\n";
+        } else if (score >= 10000 && score <= 10500) {
+            std::cout << "\nGPU Type: INTEGRATED (score: " << score << ")" << "\n";
+        } else {
+            std::cout << "\nGPU Type: UNKNOWN (score: " << score << ")" << "\n";
+        }
+
+        score += deviceProperties.limits.maxImageDimension2D;
+        
+        return ( ( !deviceFeatures.geometryShader ) && ( !indices.isComplete() ) ) ? 0 : score;
+    }
 } // end of HelperFunctions namespace
 
 void Tutorial_Triangle::run() {
@@ -89,6 +149,7 @@ void Tutorial_Triangle::initWindow() {
 
 void Tutorial_Triangle::initVulkan() {
     createInstance();
+    pickPhysicalDevice();
 } // end of initVulkan()
 
 // Creating the Vulkan Instance
@@ -125,6 +186,32 @@ void Tutorial_Triangle::createInstance() {
     HelperFunctions::listSupportedInstanceExt();
 
 } // end of createInstance()
+
+// Search and select appropriate GPU
+void Tutorial_Triangle::pickPhysicalDevice() {
+
+    // First we have to list all the GPUs available
+    uint32_t deviceCount = 0;
+
+    // Get the number of GPUs detected
+    vkEnumeratePhysicalDevices(instance_, &deviceCount, nullptr);
+    if (deviceCount == 0) {
+        throw std::runtime_error("Failed to find GPUs with Vulkan support!");
+    }
+
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(instance_, &deviceCount, devices.data());
+
+    for (const auto& device : devices) {
+        physicalDevice_ = HelperFunctions::rateDeviceSuitability(device) >= 1000 ? device : VK_NULL_HANDLE;
+        break;
+    }
+
+    if (physicalDevice_ == VK_NULL_HANDLE) {
+        throw std::runtime_error("Failed to find a suitable GPU!");
+    }
+
+} // end of pickPhysicalDevice()
 
 void Tutorial_Triangle::mainLoop() {
     
