@@ -252,13 +252,14 @@ void Tutorial_Triangle::createLogicalDevice() {
         createInfo.enabledLayerCount = 0;
     }
 
-    // Get graphics queue and store it in its handle
-    vkGetDeviceQueue(device_, indices.graphicsFamily.value(), 0, &graphicsQueue);
 
     if (vkCreateDevice(physicalDevice_, &createInfo, nullptr, &device_) != VK_SUCCESS) {
         throw std::runtime_error("\nFailed to create Logical Device!");
     }
 
+    // Get graphics queue and store it in its handle
+    vkGetDeviceQueue(device_, indices.graphicsFamily.value(), 0, &graphicsQueue_);
+    
 } // end of createLogicalDevice()
 
 void Tutorial_Triangle::mainLoop() {

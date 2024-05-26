@@ -43,7 +43,7 @@ class Tutorial_Triangle {
     VkInstance instance_;                                        // Vulkan instance
     VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;           // Selected GPU handle
     VkDevice device_;                                            // Logical device that interfaces with the physical device
-    VkQueue graphicsQueue;                                       // Queues interface handle
+    VkQueue graphicsQueue_;                                       // Queues interface handle
 };
 
 #endif // TUTORIAL_TRIANGLE_H
