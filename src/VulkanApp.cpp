@@ -1,10 +1,22 @@
 #ifndef VULKANAPP_CPP
 #define VULKANAPP_CPP
 
+// Project Includes first
 #include "../include/Tutorial_Triangle.h"
+
+// Global Includes after
+#include <iostream>
 
 int main(int argc, char** argv)
 {
+    // Test
+
+    uint8_t temp1 = 5;
+    uint8_t temp2 = 4;
+    uint8_t result = temp1 & temp2;
+    std::cout <<  "\ntemp1: 0x" << std::hex << temp1 << "\ntemp2: 0x" << std::hex << temp2 << "\nresult: "  << (temp1 & temp2);
+    // std::cout << "asadsd";
+
     Tutorial_Triangle app;
 
     try {

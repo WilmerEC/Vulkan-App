@@ -72,14 +72,18 @@ namespace HelperFunctions
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
         QueueFamilyIndices indices;
 
+        // Retrieve number of queue families
         uint32_t queueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
+        // Create vector that will contain all queue families available in this GPU
         std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        // Retrieve all queue families available in this GPU
         vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
         int i = 0;
         for (const auto& queueFamily : queueFamilies) {
+            // Adding graphics queue family into the indices struct
             indices.graphicsFamily = (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) ? i : 0;
             i++;
         }
@@ -143,13 +147,15 @@ void Tutorial_Triangle::initWindow() {
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     
     // Create window and get its reference
-    pWindow = glfwCreateWindow(800, 600, "Vulkan Application", nullptr, nullptr);
+    pWindow_ = glfwCreateWindow(800, 600, "Vulkan Application", nullptr, nullptr);
 
 } // end of initWindow()
 
 void Tutorial_Triangle::initVulkan() {
+    
     createInstance();
     pickPhysicalDevice();
+    createLogicalDevice();
 } // end of initVulkan()
 
 // Creating the Vulkan Instance
@@ -213,10 +219,52 @@ void Tutorial_Triangle::pickPhysicalDevice() {
 
 } // end of pickPhysicalDevice()
 
+void Tutorial_Triangle::createLogicalDevice() {
+
+    HelperFunctions::QueueFamilyIndices indices = HelperFunctions::findQueueFamilies(physicalDevice_);
+
+    // First step in creating a device is filling it with the queues info
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+    queueCreateInfo.queueCount = 1;
+
+    float queuePriority = 1.0;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    // Next step is to gather all the device features
+    VkPhysicalDeviceFeatures deviceFeatures{}; // will use later, needed to create device
+
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pQueueCreateInfos = &queueCreateInfo;
+    createInfo.queueCreateInfoCount = 1;
+
+    createInfo.pEnabledFeatures = &deviceFeatures;
+
+    // This is only needed for older implementations
+    createInfo.enabledExtensionCount = 0;
+
+    if (enableValidationLayers) {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+    } else {
+        createInfo.enabledLayerCount = 0;
+    }
+
+    // Get graphics queue and store it in its handle
+    vkGetDeviceQueue(device_, indices.graphicsFamily.value(), 0, &graphicsQueue);
+
+    if (vkCreateDevice(physicalDevice_, &createInfo, nullptr, &device_) != VK_SUCCESS) {
+        throw std::runtime_error("\nFailed to create Logical Device!");
+    }
+
+} // end of createLogicalDevice()
+
 void Tutorial_Triangle::mainLoop() {
     
     // While window is open
-    while (!glfwWindowShouldClose(pWindow)) {
+    while (!glfwWindowShouldClose(pWindow_)) {
         glfwPollEvents();
     }
 
@@ -224,8 +272,9 @@ void Tutorial_Triangle::mainLoop() {
 
 void Tutorial_Triangle::cleanUp() {
 
+    vkDestroyDevice(device_, nullptr);
     vkDestroyInstance(instance_, nullptr);
-    glfwDestroyWindow(pWindow);
+    glfwDestroyWindow(pWindow_);
     glfwTerminate();
 
 } // end of cleanUp()
