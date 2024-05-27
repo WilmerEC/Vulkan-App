@@ -6,16 +6,35 @@
 #include <cstring>
 #include <optional>
 
-namespace HelperFunctions
+namespace HelperSpace
 {
+
+    enum IndexType {
+        eGraphics = 0,
+        ePresentation = 1
+    };
 
     // Helper function to obtain correct Queue Families 
     struct QueueFamilyIndices {
-        std::optional<uint32_t> graphicsFamily;
+
+
+        QueueFamilyIndices() {
+            for (int i = 0; i < 2; i++) {
+                std::optional<uint32_t> temp;
+                queueFamilyIndices.push_back(temp);
+            }
+        }
+
+        std::vector<std::optional<uint32_t>> queueFamilyIndices = {};
 
         bool isComplete() {
-            return graphicsFamily.has_value();
+            return queueFamilyIndices[ HelperSpace::eGraphics].has_value() && queueFamilyIndices[HelperSpace::ePresentation].has_value();
         }
+    };
+
+    struct QueueFamiliesParams {
+        VkPhysicalDevice* physicalDevice;
+        VkSurfaceKHR* surface;
     };
 
     // Only here for debugging info
@@ -69,22 +88,34 @@ namespace HelperFunctions
 
     } // end of checkValidationLayersSupport()
 
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+    QueueFamilyIndices findQueueFamilies(const HelperSpace::QueueFamiliesParams param) {
         QueueFamilyIndices indices;
 
         // Retrieve number of queue families
         uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(*param.physicalDevice, &queueFamilyCount, nullptr);
 
         // Create vector that will contain all queue families available in this GPU
         std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
         // Retrieve all queue families available in this GPU
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+        vkGetPhysicalDeviceQueueFamilyProperties(*param.physicalDevice, &queueFamilyCount, queueFamilies.data());
 
         int i = 0;
+        VkBool32 presentSupport = false;
         for (const auto& queueFamily : queueFamilies) {
+            
             // Adding graphics queue family into the indices struct
-            indices.graphicsFamily = (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) ? i : 0;
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                indices.queueFamilyIndices[HelperSpace::eGraphics] = i;
+            }
+
+            // Adding presentation queue family into indices struct
+            vkGetPhysicalDeviceSurfaceSupportKHR(*param.physicalDevice, i, *param.surface, &presentSupport);
+            
+            if (presentSupport == true) {
+                indices.queueFamilyIndices[HelperSpace::ePresentation] = i;
+            }
+            
             i++;
         }
         
@@ -92,16 +123,16 @@ namespace HelperFunctions
 
     } // end of findQueueFamilies()
 
-    int rateDeviceSuitability(VkPhysicalDevice device) {
+    int rateDeviceSuitability(const HelperSpace::QueueFamiliesParams param) {
         
         // Check for GPU properties and features
         VkPhysicalDeviceProperties deviceProperties;
         VkPhysicalDeviceFeatures deviceFeatures;
 
-        QueueFamilyIndices indices = findQueueFamilies(device);
+        QueueFamilyIndices indices = findQueueFamilies(param);
 
-        vkGetPhysicalDeviceProperties(device, &deviceProperties);
-        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+        vkGetPhysicalDeviceProperties(*param.physicalDevice, &deviceProperties);
+        vkGetPhysicalDeviceFeatures(*param.physicalDevice, &deviceFeatures);
 
         int score = (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) ? (score + 1000) : 
                     ((deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) ? 10000 : 0);
@@ -123,7 +154,7 @@ namespace HelperFunctions
         
         return ( ( !deviceFeatures.geometryShader ) && ( !indices.isComplete() ) ) ? 0 : score;
     }
-} // end of HelperFunctions namespace
+} // end of HelperSpace namespace
 
 void Tutorial_Triangle::run() {
 
@@ -154,8 +185,10 @@ void Tutorial_Triangle::initWindow() {
 void Tutorial_Triangle::initVulkan() {
     
     createInstance();
+    createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
+
 } // end of initVulkan()
 
 // Creating the Vulkan Instance
@@ -189,7 +222,7 @@ void Tutorial_Triangle::createInstance() {
         throw std::runtime_error("failed to create instance!");
     }
 
-    HelperFunctions::listSupportedInstanceExt();
+    HelperSpace::listSupportedInstanceExt();
 
 } // end of createInstance()
 
@@ -207,9 +240,12 @@ void Tutorial_Triangle::pickPhysicalDevice() {
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance_, &deviceCount, devices.data());
+    HelperSpace::QueueFamiliesParams param;
+    param.surface = &surface_;
 
-    for (const auto& device : devices) {
-        physicalDevice_ = HelperFunctions::rateDeviceSuitability(device) >= 1000 ? device : VK_NULL_HANDLE;
+    for (auto& device : devices) {
+        param.physicalDevice = &device;
+        physicalDevice_ = HelperSpace::rateDeviceSuitability(param) >= 1000 ? device : VK_NULL_HANDLE;
         break;
     }
 
@@ -221,24 +257,37 @@ void Tutorial_Triangle::pickPhysicalDevice() {
 
 void Tutorial_Triangle::createLogicalDevice() {
 
-    HelperFunctions::QueueFamilyIndices indices = HelperFunctions::findQueueFamilies(physicalDevice_);
+    HelperSpace::QueueFamiliesParams param;
+    param.physicalDevice = &physicalDevice_;
+    param.surface = &surface_;    
 
-    // First step in creating a device is filling it with the queues info
-    VkDeviceQueueCreateInfo queueCreateInfo{};
-    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
-    queueCreateInfo.queueCount = 1;
+    HelperSpace::QueueFamilyIndices indices = HelperSpace::findQueueFamilies(param);
 
-    float queuePriority = 1.0;
-    queueCreateInfo.pQueuePriorities = &queuePriority;
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+
+
+    float queuePriority = 1.0f;
+    
+    for(int i = 0; i < indices.queueFamilyIndices.size(); i++)
+    {
+        // First step in creating a device is filling it with the queues info
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = indices.queueFamilyIndices[i].value();
+        int temp = indices.queueFamilyIndices[i].value();
+        std::cout << "\ntemp: " << temp << "\n";
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
 
     // Next step is to gather all the device features
     VkPhysicalDeviceFeatures deviceFeatures{}; // will use later, needed to create device
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.pQueueCreateInfos = &queueCreateInfo;
-    createInfo.queueCreateInfoCount = 1;
+    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+    createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
     createInfo.pEnabledFeatures = &deviceFeatures;
 
@@ -257,10 +306,17 @@ void Tutorial_Triangle::createLogicalDevice() {
         throw std::runtime_error("\nFailed to create Logical Device!");
     }
 
-    // Get graphics queue and store it in its handle
-    vkGetDeviceQueue(device_, indices.graphicsFamily.value(), 0, &graphicsQueue_);
-    
+    // Get queue and store it in its handle
+    vkGetDeviceQueue(device_, indices.queueFamilyIndices[HelperSpace::eGraphics].value(), 0, &graphicsQueue_);
+    vkGetDeviceQueue(device_, indices.queueFamilyIndices[HelperSpace::ePresentation].value(), 0, &presentQueue_);
+
 } // end of createLogicalDevice()
+
+void Tutorial_Triangle::createSurface() {
+    if (glfwCreateWindowSurface(instance_, pWindow_, nullptr, &surface_) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create window surface!");
+    }
+}
 
 void Tutorial_Triangle::mainLoop() {
     
@@ -274,6 +330,7 @@ void Tutorial_Triangle::mainLoop() {
 void Tutorial_Triangle::cleanUp() {
 
     vkDestroyDevice(device_, nullptr);
+    vkDestroySurfaceKHR(instance_, surface_, nullptr);
     vkDestroyInstance(instance_, nullptr);
     glfwDestroyWindow(pWindow_);
     glfwTerminate();

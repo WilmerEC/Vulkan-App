@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <vector>
+
 class Tutorial_Triangle {
     
     public:
@@ -35,6 +36,7 @@ class Tutorial_Triangle {
     void createInstance();
     void pickPhysicalDevice();
     void createLogicalDevice();
+    void createSurface();
     void mainLoop();
     void cleanUp();
 
@@ -43,7 +45,9 @@ class Tutorial_Triangle {
     VkInstance instance_;                                        // Vulkan instance
     VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;           // Selected GPU handle
     VkDevice device_;                                            // Logical device that interfaces with the physical device
-    VkQueue graphicsQueue_;                                       // Queues interface handle
+    VkQueue graphicsQueue_;                                      // Graphcic queues interface handle
+    VkQueue presentQueue_;                                       // Presentation queues interface handle
+    VkSurfaceKHR surface_;                                       // Platform agnostic windows surface handle
 };
 
 #endif // TUTORIAL_TRIANGLE_H
