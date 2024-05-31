@@ -59,16 +59,21 @@ namespace HelperSpace
         std::cin.get();
     }
 
-
     // Helper function to obtain correct Queue Families 
     QueueFamilyIndices::QueueFamilyIndices() {
         
+        queueFamilyIndices = {};
+
+        /* 
+         *   We're only querying for 2 kinds of queue families. 
+         *   TO-DO: Make constant(s) of queue families needed to be queried 
+         *   and replace int literal by that variable
+        */
         for (int i = 0; i < 2; i++) {
             std::optional<uint32_t> temp;
             queueFamilyIndices.push_back(temp);
         }
         
-        queueFamilyIndices = {};
     }
 
     bool QueueFamilyIndices::isComplete() {
@@ -139,15 +144,17 @@ namespace HelperSpace
             // Adding presentation queue family into indices struct
             vkGetPhysicalDeviceSurfaceSupportKHR(*param.physicalDevice, i, *param.surface, &presentSupport);
             
-            if (presentSupport == true) {
+            if (presentSupport == true ) {
                 indices.queueFamilyIndices[HelperSpace::ePresentation] = i;
             }
             
+            if(indices.queueFamilyIndices[eGraphics].value() == indices.queueFamilyIndices[ePresentation].value()) {
+                break;
+            }
+
             i++;
         }
         
-
-
         return indices;
 
     } // end of findQueueFamilies()
@@ -184,33 +191,25 @@ namespace HelperSpace
         return ( ( !deviceFeatures.geometryShader ) && ( !indices.isComplete() ) ) ? 0 : score;
     }
 
-    void getQueueInfos( HelperSpace::QueueFamilyIndices indices, HelperSpace::QueueFamiliesParams param, std::vector<VkDeviceQueueCreateInfo>& out ) 
+    std::vector<VkDeviceQueueCreateInfo> getQueueInfos( HelperSpace::QueueFamilyIndices indices, HelperSpace::QueueFamiliesParams param ) 
     {
-        // std::vector<VkDeviceQueueCreateInfo> queueSurfaceCreateInfos;
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        float queuePriorities[1] = {1.0f};
 
-        float queuePriority = 1.0f; 
         for(int i = 0; i < indices.queueFamilyIndices.size(); i++)
         {
-            // First step in creating a device is filling it with the queues info
             VkDeviceQueueCreateInfo queueCreateInfo{};
             queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueCreateInfo.queueFamilyIndex = indices.queueFamilyIndices[i].value();
             queueCreateInfo.queueCount = 1;
-            queueCreateInfo.pQueuePriorities = &queuePriority;
-            out.push_back(queueCreateInfo);
-            
-
+            queueCreateInfo.pQueuePriorities = &queuePriorities[0];
+            queueCreateInfos.push_back(queueCreateInfo);
 
             if(indices.queueFamilyIndices[eGraphics].value() == indices.queueFamilyIndices[ePresentation].value()) {
                 break;
             }
         }
-
-        int size = out.size();
-        int size1 = indices.queueFamilyIndices.size();
-        
-        logPauseSingle("indices.queueFamilyIndices.size()", &size1, DataTypes::eInt, true );
-
+        return queueCreateInfos;
     }
 
     
@@ -327,9 +326,9 @@ void Tutorial_Triangle::createLogicalDevice() {
     // Get the queue family indices based on our requirements
     HelperSpace::QueueFamilyIndices indices = HelperSpace::findQueueFamilies(param);
     
+    // First step in creating a device is filling it with the queues info.
     // Get the necessary amount of queue create infos to avoid duplication of queues and save resources & performance
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    HelperSpace::getQueueInfos(indices, param, queueCreateInfos);
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = HelperSpace::getQueueInfos(indices, param);
 
     // Next step is to gather all the device features
     VkPhysicalDeviceFeatures deviceFeatures{}; // will use later, needed to create device
@@ -338,11 +337,6 @@ void Tutorial_Triangle::createLogicalDevice() {
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
-
-    std::cout << "\n\nqueueCreateInfos.size(): " << queueCreateInfos.size() << "\n\n"; 
-    std::cin.get();
-
-
     createInfo.pEnabledFeatures = &deviceFeatures;
 
     // This is only needed for older implementations
@@ -354,7 +348,6 @@ void Tutorial_Triangle::createLogicalDevice() {
     } else {
         createInfo.enabledLayerCount = 0;
     }
-
 
     if (vkCreateDevice(physicalDevice_, &createInfo, nullptr, &device_) != VK_SUCCESS) {
         throw std::runtime_error("\nFailed to create Logical Device!");
