@@ -13,15 +13,23 @@ ${CMAKE_SOURCE_DIR}/src/VulkanApp.cpp
 ${CMAKE_SOURCE_DIR}/src/Tutorial_Triangle.cpp
 )
 
+#set(DEBUGMODE ON)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_CXX_STANDARD_REQUIRED 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
+
+if(DEBUGMODE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    message("\n-- DEBUG MODE ON\n")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+    message("\n-- DEBUG MODE OFF\n")
+endif()
+
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi")
 
-include_directories("${CMAKE_SOURCE_DIR}/include")
-
 add_executable(VulkanApp ${SOURCE})
-#target_include_directories(VulkanApp PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(VulkanApp PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
 target_link_libraries(VulkanApp glfw)
 target_link_libraries(VulkanApp glm::glm )

@@ -212,8 +212,6 @@ namespace HelperSpace
         return queueCreateInfos;
     }
 
-    
-
 } // end of HelperSpace namespace
 
 //////// Standard Functions
