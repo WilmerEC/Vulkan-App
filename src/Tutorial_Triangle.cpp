@@ -1,6 +1,6 @@
 
 
-#include "../include/Tutorial_Triangle.h"
+#include "Tutorial_Triangle.h"
 
 #include <cstring>
 #include <optional>

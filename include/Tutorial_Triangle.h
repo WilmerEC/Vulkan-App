@@ -101,4 +101,3 @@ class Tutorial_Triangle {
 };
 
 #endif // TUTORIAL_TRIANGLE_H
-// #include "../src/Tutorial_Triangle.cpp"
