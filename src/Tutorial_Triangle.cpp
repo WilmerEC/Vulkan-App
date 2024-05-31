@@ -1,5 +1,4 @@
-#ifndef TUTORIAL_TRIANGLE_CPP
-#define TUTORIAL_TRIANGLE_CPP
+
 
 #include "../include/Tutorial_Triangle.h"
 
@@ -9,44 +8,72 @@
 namespace HelperSpace
 {
 
-    enum IndexType {
-        eGraphics = 0,
-        ePresentation = 1
-    };
+    void logPauseSingle(const char* name, void* data, DataTypes dataType, bool pause) {
+        
+        switch (dataType) {
+            
+            case DataTypes::eInt: 
+            {
+                std::cout << "\n" << name << ": " << *(static_cast<int*>(data)); 
+                if (pause) { std::cin.get(); }
+            } break;
+
+            case DataTypes::eChar: 
+            {
+                std::cout << "\n" << name << ": " << *(static_cast<char*>(data)); 
+                if (pause) { std::cin.get(); }
+            } break;
+
+            case DataTypes::eBool: 
+            {
+                std::cout << "\n" << name << ": " << *(static_cast<bool*>(data)); 
+                if (pause) { std::cin.get(); }
+            } break;
+
+            case DataTypes::eFloat: 
+            {
+                std::cout << "\n" << name << ": " << *(static_cast<float*>(data)); 
+                if (pause) { std::cin.get(); }
+            } break;
+
+            case DataTypes::eDouble: 
+            {
+                std::cout << "\n" << name << ": " << *(static_cast<double*>(data)); 
+                if (pause) { std::cin.get(); }
+            } break;
+
+            default:
+            break;
+        }
+        std::cout << "\n";
+    }
+
+    void logPauseChunk(std::vector<const char*> names, std::vector<void*> data, std::vector<DataTypes> dataTypes) {
+        
+        std::cout << "\n";
+
+        for (int i = 0; i < names.size(); i++) {
+            logPauseSingle(names[i], data[i], dataTypes[i], false);
+        }
+        
+        std::cin.get();
+    }
+
 
     // Helper function to obtain correct Queue Families 
-    struct QueueFamilyIndices {
-
-
-        QueueFamilyIndices() {
-            for (int i = 0; i < 2; i++) {
-                std::optional<uint32_t> temp;
-                queueFamilyIndices.push_back(temp);
-            }
+    QueueFamilyIndices::QueueFamilyIndices() {
+        
+        for (int i = 0; i < 2; i++) {
+            std::optional<uint32_t> temp;
+            queueFamilyIndices.push_back(temp);
         }
+        
+        queueFamilyIndices = {};
+    }
 
-        std::vector<std::optional<uint32_t>> queueFamilyIndices = {};
-
-        bool isComplete() {
-            return queueFamilyIndices[ HelperSpace::eGraphics].has_value() && queueFamilyIndices[HelperSpace::ePresentation].has_value();
-        }
-    };
-
-    struct QueueFamiliesParams {
-        VkPhysicalDevice* physicalDevice;
-        VkSurfaceKHR* surface;
-    };
-
-    // Only here for debugging info
-    #ifdef NDEBUG
-        const bool enableValidationLayers = false;
-    #else
-        const bool enableValidationLayers = true;
-    #endif
-
-
-    // Just for this scope's purposes
-    const std::vector<const char*> sValidationLayers = { "VK_LAYER_KHRONOS_validation" };
+    bool QueueFamilyIndices::isComplete() {
+        return queueFamilyIndices[ HelperSpace::eGraphics].has_value() && queueFamilyIndices[HelperSpace::ePresentation].has_value();
+    }
     
     // Helper function that lists all the supported instance extensions 
     void listSupportedInstanceExt() {
@@ -119,6 +146,8 @@ namespace HelperSpace
             i++;
         }
         
+
+
         return indices;
 
     } // end of findQueueFamilies()
@@ -154,7 +183,41 @@ namespace HelperSpace
         
         return ( ( !deviceFeatures.geometryShader ) && ( !indices.isComplete() ) ) ? 0 : score;
     }
+
+    void getQueueInfos( HelperSpace::QueueFamilyIndices indices, HelperSpace::QueueFamiliesParams param, std::vector<VkDeviceQueueCreateInfo>& out ) 
+    {
+        // std::vector<VkDeviceQueueCreateInfo> queueSurfaceCreateInfos;
+
+        float queuePriority = 1.0f; 
+        for(int i = 0; i < indices.queueFamilyIndices.size(); i++)
+        {
+            // First step in creating a device is filling it with the queues info
+            VkDeviceQueueCreateInfo queueCreateInfo{};
+            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfo.queueFamilyIndex = indices.queueFamilyIndices[i].value();
+            queueCreateInfo.queueCount = 1;
+            queueCreateInfo.pQueuePriorities = &queuePriority;
+            out.push_back(queueCreateInfo);
+            
+
+
+            if(indices.queueFamilyIndices[eGraphics].value() == indices.queueFamilyIndices[ePresentation].value()) {
+                break;
+            }
+        }
+
+        int size = out.size();
+        int size1 = indices.queueFamilyIndices.size();
+        
+        logPauseSingle("indices.queueFamilyIndices.size()", &size1, DataTypes::eInt, true );
+
+    }
+
+    
+
 } // end of HelperSpace namespace
+
+//////// Standard Functions
 
 void Tutorial_Triangle::run() {
 
@@ -261,25 +324,12 @@ void Tutorial_Triangle::createLogicalDevice() {
     param.physicalDevice = &physicalDevice_;
     param.surface = &surface_;    
 
+    // Get the queue family indices based on our requirements
     HelperSpace::QueueFamilyIndices indices = HelperSpace::findQueueFamilies(param);
-
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-
-
-    float queuePriority = 1.0f;
     
-    for(int i = 0; i < indices.queueFamilyIndices.size(); i++)
-    {
-        // First step in creating a device is filling it with the queues info
-        VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = indices.queueFamilyIndices[i].value();
-        int temp = indices.queueFamilyIndices[i].value();
-        std::cout << "\ntemp: " << temp << "\n";
-        queueCreateInfo.queueCount = 1;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
-        queueCreateInfos.push_back(queueCreateInfo);
-    }
+    // Get the necessary amount of queue create infos to avoid duplication of queues and save resources & performance
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    HelperSpace::getQueueInfos(indices, param, queueCreateInfos);
 
     // Next step is to gather all the device features
     VkPhysicalDeviceFeatures deviceFeatures{}; // will use later, needed to create device
@@ -288,6 +338,10 @@ void Tutorial_Triangle::createLogicalDevice() {
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
+
+    std::cout << "\n\nqueueCreateInfos.size(): " << queueCreateInfos.size() << "\n\n"; 
+    std::cin.get();
+
 
     createInfo.pEnabledFeatures = &deviceFeatures;
 
@@ -312,22 +366,27 @@ void Tutorial_Triangle::createLogicalDevice() {
 
 } // end of createLogicalDevice()
 
-void Tutorial_Triangle::createSurface() {
-    if (glfwCreateWindowSurface(instance_, pWindow_, nullptr, &surface_) != VK_SUCCESS) {
+void Tutorial_Triangle::createSurface() 
+{
+    if (glfwCreateWindowSurface(instance_, pWindow_, nullptr, &surface_) != VK_SUCCESS) 
+    {
         throw std::runtime_error("failed to create window surface!");
     }
 }
 
-void Tutorial_Triangle::mainLoop() {
+void Tutorial_Triangle::mainLoop() 
+{
     
     // While window is open
-    while (!glfwWindowShouldClose(pWindow_)) {
+    while (!glfwWindowShouldClose(pWindow_))
+    {
         glfwPollEvents();
     }
 
 } // end of mainLoop()
 
-void Tutorial_Triangle::cleanUp() {
+void Tutorial_Triangle::cleanUp() 
+{
 
     vkDestroyDevice(device_, nullptr);
     vkDestroySurfaceKHR(instance_, surface_, nullptr);
@@ -337,4 +396,3 @@ void Tutorial_Triangle::cleanUp() {
 
 } // end of cleanUp()
 
-#endif // TUTORIAL_TRIANGLE_CPP

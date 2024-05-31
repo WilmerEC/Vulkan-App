@@ -7,7 +7,56 @@
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
+#include <optional>
 #include <vector>
+
+namespace HelperSpace
+{
+
+    enum IndexType {
+        eGraphics = 0,
+        ePresentation = 1
+    };
+
+    enum DataTypes {
+        eInt = 0,
+        eChar = 1,
+        eBool = 2,
+        eFloat = 3,
+        eDouble = 4,
+    };
+
+    // Helper function to obtain correct Queue Families 
+    struct QueueFamilyIndices {
+
+
+        QueueFamilyIndices();
+        // ~QueueFamilyIndices(){};
+
+        // Standard functions
+        bool isComplete();
+        
+        // Members
+        std::vector<std::optional<uint32_t>> queueFamilyIndices;
+    };
+
+    struct QueueFamiliesParams {
+        VkPhysicalDevice* physicalDevice;
+        VkSurfaceKHR* surface;
+    };
+
+    // Only here for debugging info
+    #ifdef NDEBUG
+        const bool enableValidationLayers = false;
+    #else
+        const bool enableValidationLayers = true;
+    #endif
+
+
+    // Just for this scope's purposes
+    const std::vector<const char*> sValidationLayers = { "VK_LAYER_KHRONOS_validation" };
+
+} // end of HelperSpace namespace
 
 class Tutorial_Triangle {
     
@@ -28,9 +77,10 @@ class Tutorial_Triangle {
     #else
         const bool enableValidationLayers = true;
     #endif
+
     private:
 
-    // Functions
+    // Standard Functions
     void initWindow();
     void initVulkan();
     void createInstance();
@@ -51,4 +101,4 @@ class Tutorial_Triangle {
 };
 
 #endif // TUTORIAL_TRIANGLE_H
-#include "../src/Tutorial_Triangle.cpp"
+// #include "../src/Tutorial_Triangle.cpp"

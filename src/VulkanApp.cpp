@@ -1,8 +1,7 @@
-#ifndef VULKANAPP_CPP
-#define VULKANAPP_CPP
+
 
 // Project Includes first
-#include "../include/Tutorial_Triangle.h"
+#include "Tutorial_Triangle.h"
 
 // Global Includes after
 #include <iostream>
@@ -30,4 +29,4 @@ int main(int argc, char** argv)
     return EXIT_SUCCESS;
 }
 
-#endif // VULKANAPP_CPP
+
