@@ -3,7 +3,6 @@ find_package(glfw3 REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(glm REQUIRED)
 
-
 set(INCLUDES  
 ${CMAKE_SOURCE_DIR}/include/Tutorial_Triangle.h
 )
@@ -12,8 +11,6 @@ set(SOURCE
 ${CMAKE_SOURCE_DIR}/src/VulkanApp.cpp 
 ${CMAKE_SOURCE_DIR}/src/Tutorial_Triangle.cpp
 )
-
-#set(DEBUGMODE ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_CXX_STANDARD_REQUIRED 17)
