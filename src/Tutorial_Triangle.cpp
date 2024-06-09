@@ -8,8 +8,12 @@
 #include <optional>
 #include <set>
 
-
-int temp;
+/*
+    These two defines are only needed in this file,
+    hence, the need of use.
+*/ 
+#define QFParamsIdx 0 
+#define SCParamsIdx 1
 
 namespace HelperSpace
 {
@@ -21,7 +25,19 @@ namespace HelperSpace
     void listSupportedInstanceExt();
     bool checkValidationLayerSupport();
     QueueFamilyIndices findQueueFamilies(const HelperSpace::QueueFamiliesParams param);
-    // bool checkDeviceExtensionSupport(VkPhysicalDevice* physicalDevice);
+        
+        /* 
+         * This function causes linking issues but I do not yet understand why. 
+         * Therefore, it will remain commented out until I can understand the problem
+         * and come up with an appropriate way to handle it.
+         * 
+         * A possibly suitable solution would be to change the order the helper
+         * functions are defined in an ascending way (newest - oldest) instead of the
+         * current descending order (oldest - newest)
+         * 
+        */
+        // bool checkDeviceExtensionSupport(VkPhysicalDevice* physicalDevice); 
+    
     int rateDeviceSuitability(const HelperSpace::QueueFamiliesParams param);
     std::vector<VkDeviceQueueCreateInfo> getQueueInfos( HelperSpace::QueueFamilyIndices indices, HelperSpace::QueueFamiliesParams param );
     SwapChainSupportDetails querySwapChainSupport(HelperSpace::QueueFamiliesParams param);
@@ -368,8 +384,6 @@ void Tutorial_Triangle::initVulkan() {
     createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
-    
-    // TO-DO: Fix segfaults in the creation of the swap chain.
     createSwapChain();
 
 } // end of initVulkan()
@@ -577,41 +591,38 @@ void Tutorial_Triangle::cleanUp()
 
 void* Tutorial_Triangle::initParams(const uint8_t paramsType) {
     
-    // Define the different types of params being returned
-    const uint8_t kQueueFamiliesParams = 0;
-    const uint8_t kSwapChainParams = 1;
-    
-    // TO-DO: Fix bug where it segfaults when assigning
     switch (paramsType) 
     {
-        case kQueueFamiliesParams: 
+        case QFParamsIdx: 
         {
             HelperSpace::QueueFamiliesParams* tmp = (HelperSpace::QueueFamiliesParams*)malloc(sizeof(HelperSpace::QueueFamiliesParams)); // the casting is necessary for C++ compilers
             tmp->physicalDevice = &physicalDevice_;
             tmp->surface = &surface_;
-
+            
             return tmp;
-
+        
         } break;
         
-        case kSwapChainParams: 
+        case SCParamsIdx: 
         {
-            HelperSpace::SwapChainParams* tmp = (HelperSpace::SwapChainParams*)malloc(sizeof(HelperSpace::SwapChainParams));
+            HelperSpace::SwapChainParams* tmp = (HelperSpace::SwapChainParams*)malloc(sizeof(HelperSpace::SwapChainParams)); // the casting is necessary for C++ compilers
             tmp->physicalDevice = &physicalDevice_;
             tmp->surface = &surface_;
             tmp->window = pWindow_;
+        
             return tmp;
+        
         } break;
 
-        default:
+        default: {  std::cout << "\n-- Could not obtain params!\n";  }
         break;
     }
 
-    std::cout << "\n-- Could not obtain params!\n";
+    
     
     return nullptr;
 }
 
-inline HelperSpace::QueueFamiliesParams Tutorial_Triangle::GetParams(const HelperSpace::QueueFamiliesParams& in) {  return *static_cast<HelperSpace::QueueFamiliesParams*>(initParams(0));   }
+inline HelperSpace::QueueFamiliesParams Tutorial_Triangle::GetParams(const HelperSpace::QueueFamiliesParams& in) {  return *static_cast<HelperSpace::QueueFamiliesParams*>(initParams(QFParamsIdx));   }
 
-inline HelperSpace::SwapChainParams Tutorial_Triangle::GetParams(const HelperSpace::SwapChainParams& in) {  return *static_cast<HelperSpace::SwapChainParams*>(initParams(1));   }
+inline HelperSpace::SwapChainParams Tutorial_Triangle::GetParams(const HelperSpace::SwapChainParams& in) {  return *static_cast<HelperSpace::SwapChainParams*>(initParams(SCParamsIdx));   }
