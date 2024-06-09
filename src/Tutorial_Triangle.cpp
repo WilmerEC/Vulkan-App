@@ -21,7 +21,7 @@ namespace HelperSpace
     void listSupportedInstanceExt();
     bool checkValidationLayerSupport();
     QueueFamilyIndices findQueueFamilies(const HelperSpace::QueueFamiliesParams param);
-    bool checkDeviceExtensionSupport(VkPhysicalDevice* physicalDevice);
+    // bool checkDeviceExtensionSupport(VkPhysicalDevice* physicalDevice);
     int rateDeviceSuitability(const HelperSpace::QueueFamiliesParams param);
     std::vector<VkDeviceQueueCreateInfo> getQueueInfos( HelperSpace::QueueFamilyIndices indices, HelperSpace::QueueFamiliesParams param );
     SwapChainSupportDetails querySwapChainSupport(HelperSpace::QueueFamiliesParams param);
@@ -148,12 +148,12 @@ namespace HelperSpace
 
         // Retrieve number of queue families
         uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(param.physicalDevice, &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(*param.physicalDevice, &queueFamilyCount, nullptr);
 
         // Create vector that will contain all queue families available in this GPU
         std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
         // Retrieve all queue families available in this GPU
-        vkGetPhysicalDeviceQueueFamilyProperties(param.physicalDevice, &queueFamilyCount, queueFamilies.data());
+        vkGetPhysicalDeviceQueueFamilyProperties(*param.physicalDevice, &queueFamilyCount, queueFamilies.data());
 
         int i = 0;
         VkBool32 presentSupport = false;
@@ -165,7 +165,7 @@ namespace HelperSpace
             }
 
             // Adding presentation queue family into indices struct
-            vkGetPhysicalDeviceSurfaceSupportKHR(param.physicalDevice, i, param.surface, &presentSupport);
+            vkGetPhysicalDeviceSurfaceSupportKHR(*param.physicalDevice, i, *param.surface, &presentSupport);
             
             if (presentSupport == true ) {
                 indices.queueFamilyIndices[HelperSpace::ePresentation] = i;
@@ -207,8 +207,8 @@ namespace HelperSpace
 
         QueueFamilyIndices indices = findQueueFamilies(param);
 
-        vkGetPhysicalDeviceProperties(param.physicalDevice, &deviceProperties);
-        vkGetPhysicalDeviceFeatures(param.physicalDevice, &deviceFeatures);
+        vkGetPhysicalDeviceProperties(*param.physicalDevice, &deviceProperties);
+        vkGetPhysicalDeviceFeatures(*param.physicalDevice, &deviceFeatures);
 
         int score = 0;
         score = (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) ? (score + 1000) : 
@@ -224,7 +224,7 @@ namespace HelperSpace
         else                                        { std::cout << "\nGPU Type: UNKNOWN (score: " << score << ")" << "\n"; }
 
         score += deviceProperties.limits.maxImageDimension2D;
-        bool extensionsSupported = checkDeviceExtensionSupport(&param.physicalDevice);
+        bool extensionsSupported = checkDeviceExtensionSupport(param.physicalDevice);
         bool swapChainAdequate = false;
         
         if (extensionsSupported) {
@@ -260,25 +260,26 @@ namespace HelperSpace
     }
 
     SwapChainSupportDetails querySwapChainSupport(HelperSpace::QueueFamiliesParams param) {
+        
         SwapChainSupportDetails details;
 
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(param.physicalDevice, param.surface, &details.capabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*param.physicalDevice, *param.surface, &details.capabilities);
 
         uint32_t formatCount = 0;
     
-        vkGetPhysicalDeviceSurfaceFormatsKHR(param.physicalDevice, param.surface, &formatCount, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(*param.physicalDevice, *param.surface, &formatCount, nullptr);
 
         if (formatCount != 0) {
             details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(param.physicalDevice, param.surface, &formatCount, details.formats.data());
+            vkGetPhysicalDeviceSurfaceFormatsKHR(*param.physicalDevice, *param.surface, &formatCount, details.formats.data());
         }
 
         uint32_t presentModeCount = 0;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(param.physicalDevice, param.surface, &presentModeCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(*param.physicalDevice, *param.surface, &presentModeCount, nullptr);
 
         if (presentModeCount != 0) {
             details.presentModes.resize(formatCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(param.physicalDevice, param.surface, &presentModeCount, details.presentModes.data());
+            vkGetPhysicalDeviceSurfacePresentModesKHR(*param.physicalDevice, *param.surface, &presentModeCount, details.presentModes.data());
         }
 
         return details;
@@ -310,9 +311,8 @@ namespace HelperSpace
 
     VkExtent2D chooseSwapChainExtent(const SwapChainParams param) {
         
-        if (param.capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-            
-            return param.capabilities.currentExtent;
+        if (param.capabilities->currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+            return param.capabilities->currentExtent;
         } 
         else {
             int width, height;
@@ -324,8 +324,8 @@ namespace HelperSpace
         };
 
         // Making sure resolution stays within the limit for our window
-        actualExtent.width = std::clamp(actualExtent.width, param.capabilities.minImageExtent.width, param.capabilities.maxImageExtent.width);
-        actualExtent.height = std::clamp(actualExtent.height, param.capabilities.minImageExtent.height, param.capabilities.maxImageExtent.height);
+        actualExtent.width = std::clamp(actualExtent.width, param.capabilities->minImageExtent.width, param.capabilities->maxImageExtent.width);
+        actualExtent.height = std::clamp(actualExtent.height, param.capabilities->minImageExtent.height, param.capabilities->maxImageExtent.height);
 
         return actualExtent;
     }
@@ -370,7 +370,7 @@ void Tutorial_Triangle::initVulkan() {
     createLogicalDevice();
     
     // TO-DO: Fix segfaults in the creation of the swap chain.
-    // createSwapChain();
+    createSwapChain();
 
 } // end of initVulkan()
 
@@ -424,10 +424,10 @@ void Tutorial_Triangle::pickPhysicalDevice() {
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance_, &deviceCount, devices.data());
     HelperSpace::QueueFamiliesParams param;
-    param.surface = surface_;
+    param.surface = &surface_;
 
     for (auto& device : devices) {
-        param.physicalDevice = device;
+        param.physicalDevice = &device;
         physicalDevice_ = HelperSpace::rateDeviceSuitability(param) >= 1000 ? device : VK_NULL_HANDLE;
         break;
     }
@@ -441,8 +441,8 @@ void Tutorial_Triangle::pickPhysicalDevice() {
 void Tutorial_Triangle::createLogicalDevice() {
 
     HelperSpace::QueueFamiliesParams param;
-    param.physicalDevice = physicalDevice_;
-    param.surface = surface_;    
+    param.physicalDevice = &physicalDevice_;
+    param.surface = &surface_;    
 
     // Get the queue family indices based on our requirements
     HelperSpace::QueueFamilyIndices indices = HelperSpace::findQueueFamilies(param);
@@ -494,17 +494,14 @@ void Tutorial_Triangle::createSwapChain() {
     const uint8_t kQueueFamiliesParams = 0;
     const uint8_t kSwapChainParams = 1;
 
-    HelperSpace::SwapChainParams* swapChainParams;
-    swapChainParams->physicalDevice = physicalDevice_;
-    swapChainParams->surface = surface_;
-    swapChainParams->window = pWindow_;
+    // TO-DO: Bug causing segfault due to capabilities being nullptr. 
+    HelperSpace::SwapChainParams* swapChainParams = static_cast<HelperSpace::SwapChainParams*>(getParams(kSwapChainParams));
     
-    HelperSpace::QueueFamiliesParams* queueFamiliesParams ; // = static_cast<HelperSpace::QueueFamiliesParams*>(getParams(kQueueFamiliesParams));
-    queueFamiliesParams->physicalDevice = physicalDevice_;
-    queueFamiliesParams->surface = surface_;
+    HelperSpace::QueueFamiliesParams* queueFamiliesParams = static_cast<HelperSpace::QueueFamiliesParams*>(getParams(kQueueFamiliesParams));
 
     HelperSpace::SwapChainSupportDetails swapChainSupport = HelperSpace::querySwapChainSupport(*queueFamiliesParams);
-    
+    swapChainParams->capabilities = &swapChainSupport.capabilities; // Since getParams doesn't fill the capabilities part, we have to assign it for now
+
     VkSurfaceFormatKHR surfaceFormat = HelperSpace::chooseSwapChainSurfaceFormat(swapChainSupport.formats);
     
     VkPresentModeKHR presentMode = HelperSpace::chooseSwapChainPresentMode(swapChainSupport.presentModes);
@@ -513,8 +510,8 @@ void Tutorial_Triangle::createSwapChain() {
     
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
     
-    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainParams->capabilities.maxImageCount) {
-        imageCount = swapChainParams->capabilities.maxImageCount;
+    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainParams->capabilities->maxImageCount) {
+        imageCount = swapChainParams->capabilities->maxImageCount;
     }
 
     VkSwapchainCreateInfoKHR createInfo{};
@@ -553,6 +550,10 @@ void Tutorial_Triangle::createSwapChain() {
         throw std::runtime_error("\n\n-- Failed to create Swap Chain! \n\n");
     }
 
+    // Delete section
+    delete swapChainParams;
+    delete queueFamiliesParams;
+    
 }
 
 void Tutorial_Triangle::mainLoop() 
@@ -588,9 +589,9 @@ void* Tutorial_Triangle::getParams(const uint8_t paramsType) {
     {
         case kQueueFamiliesParams: 
         {
-            HelperSpace::QueueFamiliesParams* tmp;
-            tmp->physicalDevice = physicalDevice_;
-            tmp->surface = surface_;
+            HelperSpace::QueueFamiliesParams* tmp = (HelperSpace::QueueFamiliesParams*)malloc(sizeof(HelperSpace::QueueFamiliesParams)); // the casting is necessary for C++ compilers
+            tmp->physicalDevice = &physicalDevice_;
+            tmp->surface = &surface_;
 
             return tmp;
 
@@ -598,9 +599,9 @@ void* Tutorial_Triangle::getParams(const uint8_t paramsType) {
         
         case kSwapChainParams: 
         {
-            HelperSpace::SwapChainParams* tmp;
-            tmp->physicalDevice = physicalDevice_;
-            tmp->surface = surface_;
+            HelperSpace::SwapChainParams* tmp = (HelperSpace::SwapChainParams*)malloc(sizeof(HelperSpace::SwapChainParams));
+            tmp->physicalDevice = &physicalDevice_;
+            tmp->surface = &surface_;
             tmp->window = pWindow_;
             return tmp;
         } break;

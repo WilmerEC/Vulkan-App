@@ -14,15 +14,15 @@ namespace HelperSpace
 {
 
     enum IndexType {
-        eGraphics = 0,
+        eGraphics     = 0,
         ePresentation = 1
     };
 
     enum DataTypes {
-        eInt = 0,
-        eChar = 1,
-        eBool = 2,
-        eFloat = 3,
+        eInt    = 0,
+        eChar   = 1,
+        eBool   = 2,
+        eFloat  = 3,
         eDouble = 4,
     };
 
@@ -41,15 +41,15 @@ namespace HelperSpace
     };
 
     struct QueueFamiliesParams {
-        VkPhysicalDevice physicalDevice;
-        VkSurfaceKHR surface;
+        VkPhysicalDevice* physicalDevice;
+        VkSurfaceKHR* surface;
     };
 
     struct SwapChainParams {
         
-        VkPhysicalDevice physicalDevice;
-        VkSurfaceKHR surface;
-        VkSurfaceCapabilitiesKHR capabilities;
+        VkPhysicalDevice* physicalDevice;
+        VkSurfaceKHR* surface;
+        VkSurfaceCapabilitiesKHR* capabilities;
         GLFWwindow* window;
     };
 
