@@ -495,23 +495,23 @@ void Tutorial_Triangle::createSwapChain() {
     const uint8_t kSwapChainParams = 1;
 
     // TO-DO: Bug causing segfault due to capabilities being nullptr. 
-    HelperSpace::SwapChainParams* swapChainParams = static_cast<HelperSpace::SwapChainParams*>(getParams(kSwapChainParams));
+    HelperSpace::SwapChainParams swapChainParams = GetParams(swapChainParams);
     
-    HelperSpace::QueueFamiliesParams* queueFamiliesParams = static_cast<HelperSpace::QueueFamiliesParams*>(getParams(kQueueFamiliesParams));
+    HelperSpace::QueueFamiliesParams queueFamiliesParams = GetParams(queueFamiliesParams);
 
-    HelperSpace::SwapChainSupportDetails swapChainSupport = HelperSpace::querySwapChainSupport(*queueFamiliesParams);
-    swapChainParams->capabilities = &swapChainSupport.capabilities; // Since getParams doesn't fill the capabilities part, we have to assign it for now
+    HelperSpace::SwapChainSupportDetails swapChainSupport = HelperSpace::querySwapChainSupport(queueFamiliesParams);
+    swapChainParams.capabilities = &swapChainSupport.capabilities; // Since GetParams doesn't fill the capabilities part, we have to assign it for now
 
     VkSurfaceFormatKHR surfaceFormat = HelperSpace::chooseSwapChainSurfaceFormat(swapChainSupport.formats);
     
     VkPresentModeKHR presentMode = HelperSpace::chooseSwapChainPresentMode(swapChainSupport.presentModes);
     
-    VkExtent2D extent = HelperSpace::chooseSwapChainExtent(*swapChainParams);
+    VkExtent2D extent = HelperSpace::chooseSwapChainExtent(swapChainParams);
     
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
     
-    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainParams->capabilities->maxImageCount) {
-        imageCount = swapChainParams->capabilities->maxImageCount;
+    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainParams.capabilities->maxImageCount) {
+        imageCount = swapChainParams.capabilities->maxImageCount;
     }
 
     VkSwapchainCreateInfoKHR createInfo{};
@@ -524,7 +524,7 @@ void Tutorial_Triangle::createSwapChain() {
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    HelperSpace::QueueFamilyIndices indices = HelperSpace::findQueueFamilies(*queueFamiliesParams);
+    HelperSpace::QueueFamilyIndices indices = HelperSpace::findQueueFamilies(queueFamiliesParams);
     uint32_t queueFamilyIndices[] = { 
                                       indices.queueFamilyIndices.at(HelperSpace::eGraphics).value(), 
                                       indices.queueFamilyIndices.at(HelperSpace::ePresentation).value() 
@@ -550,10 +550,7 @@ void Tutorial_Triangle::createSwapChain() {
         throw std::runtime_error("\n\n-- Failed to create Swap Chain! \n\n");
     }
 
-    // Delete section
-    delete swapChainParams;
-    delete queueFamiliesParams;
-    
+
 }
 
 void Tutorial_Triangle::mainLoop() 
@@ -578,7 +575,7 @@ void Tutorial_Triangle::cleanUp()
 
 } // end of cleanUp()
 
-void* Tutorial_Triangle::getParams(const uint8_t paramsType) {
+void* Tutorial_Triangle::initParams(const uint8_t paramsType) {
     
     // Define the different types of params being returned
     const uint8_t kQueueFamiliesParams = 0;
@@ -614,3 +611,7 @@ void* Tutorial_Triangle::getParams(const uint8_t paramsType) {
     
     return nullptr;
 }
+
+inline HelperSpace::QueueFamiliesParams Tutorial_Triangle::GetParams(const HelperSpace::QueueFamiliesParams& in) {  return *static_cast<HelperSpace::QueueFamiliesParams*>(initParams(0));   }
+
+inline HelperSpace::SwapChainParams Tutorial_Triangle::GetParams(const HelperSpace::SwapChainParams& in) {  return *static_cast<HelperSpace::SwapChainParams*>(initParams(1));   }

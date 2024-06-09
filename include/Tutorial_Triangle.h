@@ -95,8 +95,16 @@ class Tutorial_Triangle {
 
     protected:
 
-    void* getParams(const uint8_t paramsType);
+    /* Kind of helper functions, will probably move them to the space later. 
+     If I start thinking about the design of this code I will get completely off track. 
+    */
+    void* initParams(const uint8_t paramsType);
     
+    // These two functions might only be here until I can think of a design to keep them out
+    
+    inline HelperSpace::SwapChainParams GetParams(const HelperSpace::SwapChainParams& in);
+    inline HelperSpace::QueueFamiliesParams GetParams(const HelperSpace::QueueFamiliesParams& in);
+
     private:
 
     // Standard Functions
