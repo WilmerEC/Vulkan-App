@@ -41,8 +41,22 @@ namespace HelperSpace
     };
 
     struct QueueFamiliesParams {
-        VkPhysicalDevice* physicalDevice;
-        VkSurfaceKHR* surface;
+        VkPhysicalDevice physicalDevice;
+        VkSurfaceKHR surface;
+    };
+
+    struct SwapChainParams {
+        
+        VkPhysicalDevice physicalDevice;
+        VkSurfaceKHR surface;
+        VkSurfaceCapabilitiesKHR capabilities;
+        GLFWwindow* window;
+    };
+
+    struct SwapChainSupportDetails {
+        VkSurfaceCapabilitiesKHR capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> presentModes;
     };
 
     // Only here for debugging info
@@ -55,6 +69,7 @@ namespace HelperSpace
 
     // Just for this scope's purposes
     const std::vector<const char*> sValidationLayers = { "VK_LAYER_KHRONOS_validation" };
+    const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
 } // end of HelperSpace namespace
 
@@ -78,6 +93,10 @@ class Tutorial_Triangle {
         const bool enableValidationLayers = true;
     #endif
 
+    protected:
+
+    void* getParams(const uint8_t paramsType);
+    
     private:
 
     // Standard Functions
@@ -87,6 +106,7 @@ class Tutorial_Triangle {
     void pickPhysicalDevice();
     void createLogicalDevice();
     void createSurface();
+    void createSwapChain();
     void mainLoop();
     void cleanUp();
 
@@ -98,6 +118,7 @@ class Tutorial_Triangle {
     VkQueue graphicsQueue_;                                      // Graphcic queues interface handle
     VkQueue presentQueue_;                                       // Presentation queues interface handle
     VkSurfaceKHR surface_;                                       // Platform agnostic windows surface handle
+    VkSwapchainKHR swapChain_;
 };
 
 #endif // TUTORIAL_TRIANGLE_H

@@ -2,12 +2,35 @@
 
 #include "Tutorial_Triangle.h"
 
+#include <bits/stdc++.h> 
 #include <cstring>
+#include <limits>
 #include <optional>
+#include <set>
+
+
+int temp;
 
 namespace HelperSpace
 {
 
+    // Function prototypes
+    void logPauseSingle(const char* name, void* data, DataTypes dataType, bool pause);
+    SwapChainSupportDetails querySwapChainSupport(HelperSpace::QueueFamiliesParams param);
+    void logPauseChunk(std::vector<const char*> names, std::vector<void*> data, std::vector<DataTypes> dataTypes);
+    void listSupportedInstanceExt();
+    bool checkValidationLayerSupport();
+    QueueFamilyIndices findQueueFamilies(const HelperSpace::QueueFamiliesParams param);
+    bool checkDeviceExtensionSupport(VkPhysicalDevice* physicalDevice);
+    int rateDeviceSuitability(const HelperSpace::QueueFamiliesParams param);
+    std::vector<VkDeviceQueueCreateInfo> getQueueInfos( HelperSpace::QueueFamilyIndices indices, HelperSpace::QueueFamiliesParams param );
+    SwapChainSupportDetails querySwapChainSupport(HelperSpace::QueueFamiliesParams param);
+    VkSurfaceFormatKHR chooseSwapChainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkPresentModeKHR chooseSwapChainPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    VkExtent2D chooseSwapChainExtent(const SwapChainParams param);
+
+
+    // Function definitions
     void logPauseSingle(const char* name, void* data, DataTypes dataType, bool pause) {
         
         switch (dataType) {
@@ -79,7 +102,7 @@ namespace HelperSpace
     bool QueueFamilyIndices::isComplete() {
         return queueFamilyIndices[ HelperSpace::eGraphics].has_value() && queueFamilyIndices[HelperSpace::ePresentation].has_value();
     }
-    
+
     // Helper function that lists all the supported instance extensions 
     void listSupportedInstanceExt() {
 
@@ -125,12 +148,12 @@ namespace HelperSpace
 
         // Retrieve number of queue families
         uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(*param.physicalDevice, &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(param.physicalDevice, &queueFamilyCount, nullptr);
 
         // Create vector that will contain all queue families available in this GPU
         std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
         // Retrieve all queue families available in this GPU
-        vkGetPhysicalDeviceQueueFamilyProperties(*param.physicalDevice, &queueFamilyCount, queueFamilies.data());
+        vkGetPhysicalDeviceQueueFamilyProperties(param.physicalDevice, &queueFamilyCount, queueFamilies.data());
 
         int i = 0;
         VkBool32 presentSupport = false;
@@ -142,7 +165,7 @@ namespace HelperSpace
             }
 
             // Adding presentation queue family into indices struct
-            vkGetPhysicalDeviceSurfaceSupportKHR(*param.physicalDevice, i, *param.surface, &presentSupport);
+            vkGetPhysicalDeviceSurfaceSupportKHR(param.physicalDevice, i, param.surface, &presentSupport);
             
             if (presentSupport == true ) {
                 indices.queueFamilyIndices[HelperSpace::ePresentation] = i;
@@ -159,6 +182,23 @@ namespace HelperSpace
 
     } // end of findQueueFamilies()
 
+    bool checkDeviceExtensionSupport(const VkPhysicalDevice* physicalDevice) {
+        
+        uint32_t extensionCount = 0;
+        vkEnumerateDeviceExtensionProperties(*physicalDevice, nullptr, &extensionCount, nullptr);
+        
+        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+        vkEnumerateDeviceExtensionProperties(*physicalDevice, nullptr, &extensionCount, availableExtensions.data());
+
+        std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+
+        for (const auto& extension : availableExtensions) {
+            requiredExtensions.erase(extension.extensionName);
+        }
+
+        return requiredExtensions.empty();
+    }
+
     int rateDeviceSuitability(const HelperSpace::QueueFamiliesParams param) {
         
         // Check for GPU properties and features
@@ -167,28 +207,35 @@ namespace HelperSpace
 
         QueueFamilyIndices indices = findQueueFamilies(param);
 
-        vkGetPhysicalDeviceProperties(*param.physicalDevice, &deviceProperties);
-        vkGetPhysicalDeviceFeatures(*param.physicalDevice, &deviceFeatures);
+        vkGetPhysicalDeviceProperties(param.physicalDevice, &deviceProperties);
+        vkGetPhysicalDeviceFeatures(param.physicalDevice, &deviceFeatures);
 
-        int score = (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) ? (score + 1000) : 
-                    ((deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) ? 10000 : 0);
+        int score = 0;
+        score = (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) ? (score + 1000) : 
+                ((deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) ? 10000 : 0);
 
         std::cout << "\nVK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: " << VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU <<
                      "\nVK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: " << VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU << 
                      "\ndeviceProperties.deviceType: " << deviceProperties.deviceType <<
                      "\ndeviceProperties.limits.maxImageDimension2D: " << deviceProperties.limits.maxImageDimension2D << std::endl;
 
-        if ((score >= 1000) && (score < 1500)) {
-            std::cout << "\nGPU Type: DISCRETE (score: " << score << ")" << "\n";
-        } else if (score >= 10000 && score <= 10500) {
-            std::cout << "\nGPU Type: INTEGRATED (score: " << score << ")" << "\n";
-        } else {
-            std::cout << "\nGPU Type: UNKNOWN (score: " << score << ")" << "\n";
-        }
+        if ((score >= 1000) && (score < 6000))      { std::cout << "\nGPU Type: DISCRETE (score: " << score << ")" << "\n"; }
+        else if (score >= 10000 && score <= 15000)  { std::cout << "\nGPU Type: INTEGRATED (score: " << score << ")" << "\n"; } 
+        else                                        { std::cout << "\nGPU Type: UNKNOWN (score: " << score << ")" << "\n"; }
 
         score += deviceProperties.limits.maxImageDimension2D;
+        bool extensionsSupported = checkDeviceExtensionSupport(&param.physicalDevice);
+        bool swapChainAdequate = false;
         
-        return ( ( !deviceFeatures.geometryShader ) && ( !indices.isComplete() ) ) ? 0 : score;
+        if (extensionsSupported) {
+            SwapChainSupportDetails swapChainSupported = querySwapChainSupport(param);
+            swapChainAdequate = !swapChainSupported.formats.empty() && !swapChainSupported.presentModes.empty(); 
+        }
+
+        return ((deviceFeatures.geometryShader) 
+                && (indices.isComplete()) 
+                && (extensionsSupported) 
+                && (swapChainAdequate) ) ? score : 0;
     }
 
     std::vector<VkDeviceQueueCreateInfo> getQueueInfos( HelperSpace::QueueFamilyIndices indices, HelperSpace::QueueFamiliesParams param ) 
@@ -212,7 +259,80 @@ namespace HelperSpace
         return queueCreateInfos;
     }
 
+    SwapChainSupportDetails querySwapChainSupport(HelperSpace::QueueFamiliesParams param) {
+        SwapChainSupportDetails details;
+
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(param.physicalDevice, param.surface, &details.capabilities);
+
+        uint32_t formatCount = 0;
+    
+        vkGetPhysicalDeviceSurfaceFormatsKHR(param.physicalDevice, param.surface, &formatCount, nullptr);
+
+        if (formatCount != 0) {
+            details.formats.resize(formatCount);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(param.physicalDevice, param.surface, &formatCount, details.formats.data());
+        }
+
+        uint32_t presentModeCount = 0;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(param.physicalDevice, param.surface, &presentModeCount, nullptr);
+
+        if (presentModeCount != 0) {
+            details.presentModes.resize(formatCount);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(param.physicalDevice, param.surface, &presentModeCount, details.presentModes.data());
+        }
+
+        return details;
+    }
+
+    VkSurfaceFormatKHR chooseSwapChainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+ 
+        for (const auto& availableFormat : availableFormats) {
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && 
+                availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+ 
+                return availableFormat;
+            }
+        }
+
+        return availableFormats[0];
+    }
+
+    VkPresentModeKHR chooseSwapChainPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+        
+        for (const auto& availablePresentMode : availablePresentModes) {
+            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+                return availablePresentMode;
+            }
+        }
+
+        return VK_PRESENT_MODE_FIFO_KHR;
+    }
+
+    VkExtent2D chooseSwapChainExtent(const SwapChainParams param) {
+        
+        if (param.capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+            
+            return param.capabilities.currentExtent;
+        } 
+        else {
+            int width, height;
+            glfwGetFramebufferSize(param.window, &width, &height);
+
+            VkExtent2D actualExtent = {
+            static_cast<uint32_t>(width),
+            static_cast<uint32_t>(height)
+        };
+
+        // Making sure resolution stays within the limit for our window
+        actualExtent.width = std::clamp(actualExtent.width, param.capabilities.minImageExtent.width, param.capabilities.maxImageExtent.width);
+        actualExtent.height = std::clamp(actualExtent.height, param.capabilities.minImageExtent.height, param.capabilities.maxImageExtent.height);
+
+        return actualExtent;
+    }
+
 } // end of HelperSpace namespace
+
+}
 
 //////// Standard Functions
 
@@ -248,6 +368,9 @@ void Tutorial_Triangle::initVulkan() {
     createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
+    
+    // TO-DO: Fix segfaults in the creation of the swap chain.
+    // createSwapChain();
 
 } // end of initVulkan()
 
@@ -301,10 +424,10 @@ void Tutorial_Triangle::pickPhysicalDevice() {
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance_, &deviceCount, devices.data());
     HelperSpace::QueueFamiliesParams param;
-    param.surface = &surface_;
+    param.surface = surface_;
 
     for (auto& device : devices) {
-        param.physicalDevice = &device;
+        param.physicalDevice = device;
         physicalDevice_ = HelperSpace::rateDeviceSuitability(param) >= 1000 ? device : VK_NULL_HANDLE;
         break;
     }
@@ -318,8 +441,8 @@ void Tutorial_Triangle::pickPhysicalDevice() {
 void Tutorial_Triangle::createLogicalDevice() {
 
     HelperSpace::QueueFamiliesParams param;
-    param.physicalDevice = &physicalDevice_;
-    param.surface = &surface_;    
+    param.physicalDevice = physicalDevice_;
+    param.surface = surface_;    
 
     // Get the queue family indices based on our requirements
     HelperSpace::QueueFamilyIndices indices = HelperSpace::findQueueFamilies(param);
@@ -337,15 +460,15 @@ void Tutorial_Triangle::createLogicalDevice() {
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.pEnabledFeatures = &deviceFeatures;
 
-    // This is only needed for older implementations
-    createInfo.enabledExtensionCount = 0;
-
     if (enableValidationLayers) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
     } else {
         createInfo.enabledLayerCount = 0;
     }
+
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(HelperSpace::deviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = HelperSpace::deviceExtensions.data();
 
     if (vkCreateDevice(physicalDevice_, &createInfo, nullptr, &device_) != VK_SUCCESS) {
         throw std::runtime_error("\nFailed to create Logical Device!");
@@ -365,6 +488,73 @@ void Tutorial_Triangle::createSurface()
     }
 }
 
+void Tutorial_Triangle::createSwapChain() {
+
+    // Define different types of params
+    const uint8_t kQueueFamiliesParams = 0;
+    const uint8_t kSwapChainParams = 1;
+
+    HelperSpace::SwapChainParams* swapChainParams;
+    swapChainParams->physicalDevice = physicalDevice_;
+    swapChainParams->surface = surface_;
+    swapChainParams->window = pWindow_;
+    
+    HelperSpace::QueueFamiliesParams* queueFamiliesParams ; // = static_cast<HelperSpace::QueueFamiliesParams*>(getParams(kQueueFamiliesParams));
+    queueFamiliesParams->physicalDevice = physicalDevice_;
+    queueFamiliesParams->surface = surface_;
+
+    HelperSpace::SwapChainSupportDetails swapChainSupport = HelperSpace::querySwapChainSupport(*queueFamiliesParams);
+    
+    VkSurfaceFormatKHR surfaceFormat = HelperSpace::chooseSwapChainSurfaceFormat(swapChainSupport.formats);
+    
+    VkPresentModeKHR presentMode = HelperSpace::chooseSwapChainPresentMode(swapChainSupport.presentModes);
+    
+    VkExtent2D extent = HelperSpace::chooseSwapChainExtent(*swapChainParams);
+    
+    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+    
+    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainParams->capabilities.maxImageCount) {
+        imageCount = swapChainParams->capabilities.maxImageCount;
+    }
+
+    VkSwapchainCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = surface_;
+    createInfo.minImageCount = imageCount;
+    createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageExtent = extent;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    HelperSpace::QueueFamilyIndices indices = HelperSpace::findQueueFamilies(*queueFamiliesParams);
+    uint32_t queueFamilyIndices[] = { 
+                                      indices.queueFamilyIndices.at(HelperSpace::eGraphics).value(), 
+                                      indices.queueFamilyIndices.at(HelperSpace::ePresentation).value() 
+                                    };
+
+    if (indices.queueFamilyIndices.at(HelperSpace::eGraphics) != indices.queueFamilyIndices.at(HelperSpace::ePresentation)) { 
+        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        createInfo.queueFamilyIndexCount = 2;
+        createInfo.pQueueFamilyIndices = queueFamilyIndices;
+    } else {
+        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.queueFamilyIndexCount = 0;
+        createInfo.pQueueFamilyIndices = nullptr;
+    }
+
+    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode = presentMode;
+    createInfo.clipped = VK_TRUE;
+    createInfo.oldSwapchain = VK_NULL_HANDLE; // Will come back to this later.
+
+    if (vkCreateSwapchainKHR(device_, &createInfo, nullptr, &swapChain_) != VK_SUCCESS) {
+        throw std::runtime_error("\n\n-- Failed to create Swap Chain! \n\n");
+    }
+
+}
+
 void Tutorial_Triangle::mainLoop() 
 {
     
@@ -378,7 +568,7 @@ void Tutorial_Triangle::mainLoop()
 
 void Tutorial_Triangle::cleanUp() 
 {
-
+    vkDestroySwapchainKHR(device_, swapChain_, nullptr);
     vkDestroyDevice(device_, nullptr);
     vkDestroySurfaceKHR(instance_, surface_, nullptr);
     vkDestroyInstance(instance_, nullptr);
@@ -387,3 +577,39 @@ void Tutorial_Triangle::cleanUp()
 
 } // end of cleanUp()
 
+void* Tutorial_Triangle::getParams(const uint8_t paramsType) {
+    
+    // Define the different types of params being returned
+    const uint8_t kQueueFamiliesParams = 0;
+    const uint8_t kSwapChainParams = 1;
+    
+    // TO-DO: Fix bug where it segfaults when assigning
+    switch (paramsType) 
+    {
+        case kQueueFamiliesParams: 
+        {
+            HelperSpace::QueueFamiliesParams* tmp;
+            tmp->physicalDevice = physicalDevice_;
+            tmp->surface = surface_;
+
+            return tmp;
+
+        } break;
+        
+        case kSwapChainParams: 
+        {
+            HelperSpace::SwapChainParams* tmp;
+            tmp->physicalDevice = physicalDevice_;
+            tmp->surface = surface_;
+            tmp->window = pWindow_;
+            return tmp;
+        } break;
+
+        default:
+        break;
+    }
+
+    std::cout << "\n-- Could not obtain params!\n";
+    
+    return nullptr;
+}
